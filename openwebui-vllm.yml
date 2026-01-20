@@ -1,0 +1,100 @@
+# Open WebUI + vLLM (Coder + Chat)
+# Docker Compose configuration run on Windows because vllm nightly is kinda buggy
+# Uses docker.io/vllm/vllm-openai:nightly
+
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    ports:
+      - "8080:8080"
+    volumes:
+      - openwebui-data:/app/backend/data
+    environment:
+      - WEBUI_AUTH=true
+      - WEBUI_NAME=Open WebUI
+      - ENABLE_OTEL=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-backend:4317
+      - OTEL_SERVICE_NAME=open-webui
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  vllm-coder:
+    image: docker.io/vllm/vllm-openai:nightly
+    container_name: vllm-coder
+    ports:
+      - "8000:8000"
+    volumes:
+      - vllm-cache:/root/.cache/huggingface
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
+    command:
+      - --model
+      - Qwen/Qwen2.5-Coder-1.5B-Instruct-AWQ
+      - --quantization
+      - awq_marlin
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8000"
+      - --max-model-len
+      - "4096"
+      - --gpu-memory-utilization
+      - "0.4"
+      - --api-key
+      - "not-needed"
+      - --enforce-eager
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  vllm-chat:
+    image: docker.io/vllm/vllm-openai:nightly
+    container_name: vllm-chat
+    ports:
+      - "8001:8001"
+    volumes:
+      - vllm-cache:/root/.cache/huggingface
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
+    command:
+      - --model
+      - Qwen/Qwen2.5-0.5B-Instruct
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8001"
+      - --max-model-len
+      - "4096"
+      - --gpu-memory-utilization
+      - "0.3"
+      - --api-key
+      - "not-needed"
+      - --enforce-eager
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+volumes:
+  openwebui-data:
+    name: openwebui-data
+  vllm-cache:
+
+networks:
+  monitoring:
+    name: monitoring

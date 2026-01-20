@@ -1,0 +1,49 @@
+# Open WebUI Monitoring Stack (Airgapped)
+#
+# Before running:
+#   docker load -i otel-lgtm.tar
+#   docker load -i metrics-exporter.tar
+
+services:
+  otel-backend:
+    image: docker.io/grafana/otel-lgtm:0.15.0
+    container_name: otel-backend
+    ports:
+      - "3000:3000"   # Grafana
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    volumes:
+      - grafana-data:/data
+      - ./grafana/dashboards:/otel-lgtm/grafana/dashboards:ro
+      - ./grafana/provisioning/dashboards:/otel-lgtm/grafana/conf/provisioning/dashboards:ro 
+      - ./otel-config/otelcol-config.yaml:/otel-lgtm/otelcol-config.yaml:ro
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GF_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD}
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  metrics-exporter:
+    image: metrics-exporter:latest
+    container_name: metrics-exporter
+    depends_on:
+      - otel-backend
+    volumes:
+      - openwebui-data:/data:ro
+    environment:
+      WEBUI_DB_PATH: /data/webui.db
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-backend:4317
+      EXPORT_INTERVAL: ${EXPORT_INTERVAL}
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+volumes:
+  grafana-data:
+  openwebui-data:
+    external: true
+
+networks:
+  monitoring:
+    external: true
