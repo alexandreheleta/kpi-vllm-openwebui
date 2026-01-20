@@ -62,17 +62,6 @@ Scraped from vLLM's Prometheus endpoint (`/metrics`).
 
 ---
 
-## Open WebUI HTTP Metrics
-
-Exported directly by Open WebUI via OTEL.
-
-| Metric | Type | Labels | Description |
-|--------|------|--------|-------------|
-| `http_server_request_duration_seconds` | Histogram | `method`, `route`, `status_code` | Request latency |
-| `http_server_requests_total` | Counter | `method`, `route`, `status_code` | Total requests |
-
----
-
 ## Example Queries
 
 ### Active Users (30 days)
@@ -112,7 +101,7 @@ vllm:kv_cache_usage_perc * 100
 | Dashboard | Panels | Metrics Used |
 |-----------|--------|--------------|
 | **Executive KPI** | Active Users | `openwebui_users_active_30d` |
-| | Avg Response Time | `http_server_request_duration_seconds` |
+| | Avg Response Time | `vllm:e2e_request_latency_seconds` |
 | | Tokens Generated | `vllm:generation_tokens_total` |
 | | Model Usage | `openwebui_model_usage` |
 | | User Leaderboard | `openwebui_user_messages` |
@@ -120,4 +109,6 @@ vllm:kv_cache_usage_perc * 100
 | | Request Queue | `vllm:num_requests_running`, `vllm:num_requests_waiting` |
 | | Time to First Token | `vllm:time_to_first_token_seconds` |
 | | E2E Latency | `vllm:e2e_request_latency_seconds` |
+| | HTTP Requests/s | `http_request_duration_seconds_count` |
+| | HTTP Response Time | `http_request_duration_seconds_bucket` |
 | | Token Throughput | `vllm:prompt_tokens_total`, `vllm:generation_tokens_total` |

@@ -167,9 +167,9 @@
       "id": 6,
       "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(http_server_requests_total{service_name=\"open-webui\"}[1m]))", "legendFormat": "Total RPS", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(http_request_duration_seconds_count{service_name=\"vllm\"}[1m]))", "legendFormat": "Total RPS", "refId": "A" }
       ],
-      "title": "Requests per Second",
+      "title": "vLLM Requests per Second",
       "type": "timeseries"
     },
     {
@@ -178,17 +178,17 @@
         "defaults": {
           "color": { "mode": "palette-classic" },
           "custom": { "axisBorderShow": false, "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 20, "lineInterpolation": "smooth", "lineWidth": 2, "showPoints": "never", "stacking": { "mode": "none" } },
-          "unit": "ms"
+          "unit": "s"
         }
       },
       "gridPos": { "h": 6, "w": 12, "x": 12, "y": 17 },
       "id": 7,
       "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.50, sum(rate(http_server_duration_milliseconds_bucket{service_name=\"open-webui\"}[5m])) by (le))", "legendFormat": "p50", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum(rate(http_server_duration_milliseconds_bucket{service_name=\"open-webui\"}[5m])) by (le))", "legendFormat": "p95", "refId": "B" }
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{service_name=\"vllm\"}[5m])) by (le))", "legendFormat": "p50", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{service_name=\"vllm\"}[5m])) by (le))", "legendFormat": "p95", "refId": "B" }
       ],
-      "title": "Response Time",
+      "title": "vLLM HTTP Response Time",
       "type": "timeseries"
     },
     {

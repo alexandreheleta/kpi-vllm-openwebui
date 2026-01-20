@@ -145,6 +145,22 @@ TOKENS BY MODEL:
 ============================================================
 ```
 
+## Dashboards
+
+Two pre-configured Grafana dashboards are included.
+
+### Executive KPI Dashboard
+
+High-level metrics for management: active users, token usage, model distribution, and user leaderboard.
+
+![Executive KPI Dashboard](images/KPIdashboard.png)
+
+### vLLM Operations Dashboard
+
+Technical monitoring for vLLM performance: request latency, token throughput, KV cache usage, and queue depth.
+
+![vLLM Operations Dashboard](images/vLLMdashboard.png)
+
 ## Notes
 
 - vLLM exposes metrics at `/metrics` by default
