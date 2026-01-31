@@ -1,0 +1,70 @@
+# OpenTelemetry Collector - External Prometheus Variant
+#
+# Exposes metrics on :8889/metrics for your Prometheus to scrape.
+# Traces and logs go to stdout (debug exporter).
+#
+# vLLM exposes Prometheus metrics at /metrics by default.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  prometheus/vllm:
+    config:
+      scrape_configs:
+        - job_name: vllm
+          scrape_interval: 15s
+          static_configs:
+            - targets:
+              - vllm-coder:8000
+              - vllm-chat:8001
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+
+exporters:
+  # Exposes all metrics on :8889/metrics for your Prometheus to scrape.
+  # Add this to your prometheus.yml:
+  #   - job_name: openwebui
+  #     static_configs:
+  #       - targets: ['<docker-host>:8889']
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  # Alternative: push metrics via remote write (uncomment and set URL to use)
+  # prometheusremotewrite:
+  #   endpoint: ${env:PROMETHEUS_REMOTE_WRITE_URL}
+  #   tls:
+  #     insecure: true
+
+  # Traces and logs go to stdout (no Loki/Tempo in this variant)
+  debug:
+    verbosity: basic
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    metrics:
+      receivers: [otlp, prometheus/vllm]
+      processors: [batch]
+      exporters: [prometheus]
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]

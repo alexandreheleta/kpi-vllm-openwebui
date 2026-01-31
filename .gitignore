@@ -45,3 +45,7 @@ data/
 *.key
 credentials.json
 secrets.yaml
+
+# Airgap bundles (generated)
+airgap-bundle/
+airgap-bundle-external/
