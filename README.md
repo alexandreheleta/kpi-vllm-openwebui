@@ -36,9 +36,11 @@ flowchart LR
 
 | File | Description |
 |------|-------------|
-| `supervision-airgap.yml` | Monitoring stack (Grafana, OTEL, metrics exporter) |
+| `supervision-airgap.yml` | Full monitoring stack (Grafana, Prometheus, OTEL, metrics exporter) |
+| `supervision-external.yml` | Lightweight stack for external Prometheus (OTEL + metrics exporter only) |
 | `openwebui-vllm.yml` | Example application stack (for testing only) |
-| `airgap-download.sh` | Script to build airgap bundle |
+| `airgap-download.sh` | Script to build airgap bundle (full stack) |
+| `airgap-download-external.sh` | Script to build airgap bundle (external Prometheus) |
 
 > **Note:** `openwebui-vllm.yml` is provided as a reference example. Use your own Open WebUI and vLLM deployment configuration.
 
@@ -111,6 +113,103 @@ Access:
 - Grafana: http://localhost:3000 (credentials in .env)
 - Executive Dashboard: http://localhost:3000/d/openwebui-executive
 - vLLM Operations: http://localhost:3000/d/openwebui-vllm-ops
+
+## External Prometheus Deployment
+
+Lightweight variant for environments with an existing Prometheus and Grafana.
+Only runs the OTEL Collector and metrics exporter — no local Prometheus or Grafana.
+
+### Architecture (external variant)
+
+```mermaid
+flowchart LR
+    subgraph app[" "]
+        direction TB
+        OW[Open WebUI :8080]
+        DB[(SQLite)]
+        VC[vLLM Coder :8000]
+        VH[vLLM Chat :8001]
+    end
+
+    subgraph monitoring[" "]
+        OTEL[OTEL Collector :4317]
+    end
+
+    subgraph external["Your Infrastructure"]
+        PROM[(Prometheus)]
+        GRAFANA[Grafana]
+    end
+
+    EXP[Metrics Exporter]
+
+    OW -->|traces| OTEL
+    VC -->|/metrics| OTEL
+    VH -->|/metrics| OTEL
+    DB -->|read| EXP
+    EXP -->|metrics| OTEL
+    OTEL -->|:8889/metrics| PROM
+    PROM --> GRAFANA
+```
+
+### Configuration (external variant)
+
+#### 1. `.env` - External Prometheus settings
+
+```bash
+cp .env.external.example .env
+# Edit .env:
+PROMETHEUS_URL=http://your-prometheus:9090
+EXPORT_INTERVAL=15
+```
+
+#### 2. `otel-config/otelcol-config-external.yaml` - vLLM endpoints
+
+Update with your vLLM container names and ports (same as full stack variant).
+
+#### 3. Prometheus scrape config
+
+Add this job to your Prometheus configuration:
+
+```yaml
+- job_name: openwebui
+  scrape_interval: 15s
+  static_configs:
+    - targets: ['<docker-host>:8889']
+```
+
+#### 4. Run
+
+```bash
+docker compose -f supervision-external.yml up -d
+```
+
+Verify: `curl http://localhost:8889/metrics` should return Prometheus-format metrics.
+
+### Airgapped Deployment (external variant)
+
+```bash
+# On machine with internet:
+chmod +x airgap-download-external.sh
+./airgap-download-external.sh
+
+# On airgapped machine:
+cd airgap-bundle-external
+docker load -i otel-collector-contrib.tar
+docker load -i metrics-exporter.tar
+# Edit .env with your settings (PROMETHEUS_URL, EXPORT_INTERVAL)
+docker compose -f supervision-external.yml up -d
+```
+
+### Dashboard Import
+
+The dashboard JSON files are in `grafana/dashboards/`. Import them manually into your Grafana:
+
+1. Go to **Dashboards > Import**
+2. Upload `openwebui-executive.json`
+3. Upload `openwebui-vllm-ops.json`
+4. Select your Prometheus datasource during import
+
+> **Note:** If panels show "No data" after import, verify the datasource UID matches. The dashboards use UID `prometheus` by default — Grafana will prompt you to select the correct datasource during import.
 
 ## Generate KPI Report
 

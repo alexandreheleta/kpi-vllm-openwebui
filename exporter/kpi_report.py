@@ -10,13 +10,14 @@ Usage:
 """
 
 import argparse
+import os
 import sys
 from calendar import monthrange
 from datetime import datetime
 
 import requests
 
-PROMETHEUS_URL = "http://otel-backend:9090"
+PROMETHEUS_URL = os.environ.get("PROMETHEUS_URL") or "http://otel-backend:9090"
 
 
 def parse_args():

@@ -1,0 +1,49 @@
+# Open WebUI Monitoring Stack (External Prometheus)
+#
+# Lightweight variant: OTEL Collector + Metrics Exporter only.
+# No local Prometheus or Grafana.
+#
+# Your Prometheus scrapes metrics from :8889/metrics
+#
+# Before running:
+#   1. Copy .env.external.example to .env and configure
+#   2. Update otel-config/otelcol-config-external.yaml with your vLLM endpoints
+
+services:
+  otel-collector:
+    image: docker.io/otel/opentelemetry-collector-contrib:0.115.0
+    container_name: otel-collector
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus metrics (for your Prometheus to scrape)
+      - "13133:13133" # Health check
+    volumes:
+      - ./otel-config/otelcol-config-external.yaml:/etc/otelcol-contrib/config.yaml:ro
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  metrics-exporter:
+    image: metrics-exporter:latest
+    container_name: metrics-exporter
+    depends_on:
+      - otel-collector
+    volumes:
+      - openwebui-data:/data:ro
+    environment:
+      WEBUI_DB_PATH: /data/webui.db
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      EXPORT_INTERVAL: ${EXPORT_INTERVAL}
+      PROMETHEUS_URL: ${PROMETHEUS_URL:-}
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+volumes:
+  openwebui-data:
+    external: true
+
+networks:
+  monitoring:
+    external: true
